@@ -37,7 +37,7 @@ void putpixel(SDL_Surface *surface, int x, int y, Uint32 pixel)
   }
 }
 
-SDL_Surface* generate(int width, int height)
+SDL_Texture* generate(SDL_Renderer* ren, int width, int height)
 {
   SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_RGBA32);
 
@@ -46,15 +46,21 @@ SDL_Surface* generate(int width, int height)
     exit(1);
   }
 
-  for (int i = 0; i < width; ++i) {
-    if (i % 2 == 1) continue;
-    for (int j = 0; j < height; ++j) {
-      if (j % 2 == 1) continue;
-      putpixel(surface, i, j, SDL_MapRGB(surface->format, 0xFF, 0xFF, 0xFF));
-    }
+  for (int i = 0; i < (width * height) / 100; i++) {
+    int ran = random() % 0xcf;
+    int x = random() % width;
+    int y = random() % height;
+    int r = ran + (random() % 48);
+    int g = ran + (random() % 48);
+    int b = ran + (random() % 48);
+
+    putpixel(surface, x, y, SDL_MapRGB(surface->format, r, g, b));
   }
 
-  return surface;
+  SDL_Texture* texture = SDL_CreateTextureFromSurface(ren, surface);
+  SDL_FreeSurface(surface);
+
+  return texture;
 }
 
 int main()
@@ -64,12 +70,15 @@ int main()
     return 1;
   }
 
+  int win_width = WIN_WIDTH;
+  int win_height = WIN_HEIGHT;
+
   SDL_Window* window = SDL_CreateWindow("Procedural Texture",
                                         SDL_WINDOWPOS_CENTERED,
                                         SDL_WINDOWPOS_CENTERED,
-                                        WIN_WIDTH,
-                                        WIN_HEIGHT,
-                                        SDL_WINDOW_SHOWN);
+                                        win_width,
+                                        win_height,
+                                        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
   if (!window) {
     fprintf(stderr, "Could not create SDL window %s\n", SDL_GetError());
@@ -78,9 +87,6 @@ int main()
 
   SDL_Renderer* ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-  SDL_Surface* generated_surface = generate(WIN_WIDTH, WIN_HEIGHT);
-  SDL_Texture* texture = SDL_CreateTextureFromSurface(ren, generated_surface);
-
   if (!ren) {
     fprintf(stderr, "Cound not creat Render %s\n", SDL_GetError());
     SDL_DestroyWindow(window);
@@ -88,8 +94,7 @@ int main()
     return 1;
   }
 
-  SDL_RenderSetScale(ren, 2, 2);
-
+  SDL_Texture* texture = generate(ren, win_width, win_height);
   bool quit = false;
   while (!quit) {
     SDL_Event event;
@@ -98,6 +103,12 @@ int main()
       switch (event.type) {
       case SDL_QUIT: {
         quit = true;
+      } break;
+      case SDL_WINDOWEVENT_RESTORED: {
+        win_width = event.window.data1;
+        win_height = event.window.data2;
+        SDL_DestroyTexture(texture);
+        texture = generate(ren, win_width, win_height);
       } break;
       }
     }
@@ -108,6 +119,7 @@ int main()
   }
 
   // Destroy
+  SDL_DestroyTexture(texture);
   SDL_DestroyWindow(window);
   SDL_Quit();
 
