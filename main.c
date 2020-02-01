@@ -16,7 +16,7 @@ int main()
                                         SDL_WINDOWPOS_CENTERED,
                                         WIN_WIDTH,
                                         WIN_HEIGHT,
-                                        SDL_WINDOW_OPENGL);
+                                        SDL_WINDOW_SHOWN);
 
   if (!window) {
     fprintf(stderr, "Could not create SDL window %s", SDL_GetError());
